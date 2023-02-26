@@ -18,5 +18,7 @@ class _asteroid(pygame.sprite.Sprite):
         self.hp = [0, 60 * 5]
 
     def update(self, *args):
+        self.rect.y += self.gravity
+
         if self.hp[0] > self.hp[1]:
             self.kill()

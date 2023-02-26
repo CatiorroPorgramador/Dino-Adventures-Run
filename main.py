@@ -13,7 +13,7 @@ from data.objects.player_class import _player, transform_texture
 from data.objects.platform_class import _platform
 from data.objects.asteroid_class import _asteroid
 from data.objects.coin_class import _coin
-from data.objects.up_class import _up
+from data.objects.fuel_class import _up
 from data.save import util
 
 dirpath = getcwd()
@@ -22,11 +22,101 @@ sys.path.append(dirpath)
 if getattr(sys, 'frozen', False):
     chdir(sys._MEIPASS)
 
+pygame.init()
+# Global Variables
+font = pygame.font.Font('data/Font.ttf', 30)
+font2 = pygame.font.Font('data/Font.ttf', 21)
 
+# Scenes
+def menu():
+    display = pygame.display.set_mode([900, 650])
+
+    textures = [
+        pygame.image.load('data/dino/dino_00.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_01.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_02.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_03.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_04.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_05.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_06.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_07.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_08.png').convert_alpha(),
+        pygame.image.load('data/dino/dino_09.png').convert_alpha(),
+    ]
+    player_image = textures[0]
+    player_pos = [0, 211 - 75]
+
+    color_play_button = (235, 235, 235)
+
+    online = 'off'
+
+    text_coins = {
+        'text': font.render('coins: ' + str(util.read_json('variables/save.json')['coins']), False, 0),
+        'pos': [10, 10],
+    }
+
+    text_play = {
+        'text': font.render('Press P to play', False, 0),
+        'pos': [20, 211],
+    }
+
+    text_online = {
+        'text': font.render('online: ' + online, False, 0),
+        'pos': [720, 10],
+    }
+
+    text_online_screen = {
+        'text': font2.render(online, False, 0),
+        'pos': [470, 120]
+    }
+
+    text_author = {
+        'text': font2.render('Made by Gustavo Cavalcanti (Catiorro Programador)', False, 0),
+        'pos': [5, 630],
+    }
+
+    render = [
+        text_coins, text_play, text_online, text_author, text_online_screen
+    ]
+
+
+    def animation():
+        global frame, player_image, frame_speed, player_side
+
+    while True:
+        text_coins['text'] =  font.render('coins: ' + str(util.read_json('variables/save.json')['coins']), False, 0)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit(0)
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    color_play_button = (71, 228, 252)
+
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_p:
+
+                    play()
+
+                    color_play_button = (235, 235, 235)
+
+        # Draw
+        display.fill((215, 215, 215))
+        
+        pygame.draw.rect(display, (235, 235, 235), pygame.Rect(450, 100, 400, 400))
+
+        #  Dino
+        display.blit(transform_texture(player_image, [72, 72], False, False), (player_pos[0], player_pos[1]))
+
+        # Buttons
+        pygame.draw.rect(display, color_play_button, pygame.Rect(10, 200, 300, 50))
+
+        for item in render:
+            display.blit(item['text'], item['pos'])
+
+        pygame.display.update()
+        pygame.time.Clock().tick(60)
 
 def play():
-    # init
-    pygame.init()
     display = pygame.display.set_mode([900, 650])
 
     # framerate
@@ -51,7 +141,7 @@ def play():
     update_group = [
         player_group, platform_group, fuel_group, coin_group, asteroid_group
     ]
-    physics_group = [player_group, asteroid_group, fuel_group, coin_group]
+    physics_group = [asteroid_group, fuel_group, coin_group]
 
     timers = [
         [0, 1, 100, '@'],
@@ -124,7 +214,6 @@ def play():
     ]
 
     # physics
-    gravity = 2
 
     # player
     player = _player(player_group)
@@ -134,19 +223,6 @@ def play():
     }
 
     index_particle = []
-
-    def save_variables():
-        file_name = 'variables/save.json'
-
-        util.data_verification(file_name)
-
-        data = util.read_json(file_name)
-
-        data['coins'] += counters['coins']
-
-        util.write_json(file_name, data)
-
-        system('cd')
 
     def next_level():
         global index_particle
@@ -170,7 +246,7 @@ def play():
                 for coin in coin_group:
                     coin.kill()
 
-                player.jump = False
+                player.motion.y = 0
 
                 player.rect.y = 10 * 50
                 player.rect.centerx = display.get_width() / 2
@@ -199,14 +275,7 @@ def play():
             if number.rect.x > i:
                 i = number.rect.x
 
-        print(i)
-
         return i
-
-    def gravity_control():
-        for group in physics_group:
-            for obj in group:
-                obj.rect.y += obj.gravity
 
     def create_map(mapping: list):
         for y, line in enumerate(mapping):
@@ -217,7 +286,6 @@ def play():
                     new_platform.rect.y = y * 50
 
     def platform_collisions():
-
         global first_platform, last_platform, index_particle
         a: list = []
 
@@ -235,8 +303,7 @@ def play():
                     pass
 
                 else:
-                    pygame.draw.rect(display, (255, 255, 255),
-                                     pygame.Rect(p.rect.x, p.rect.y, 50, 50))
+                    pygame.draw.rect(display, (255, 255, 255), pygame.Rect(p.rect.x, p.rect.y, 50, 50))
                     first_platform = p.rect.x
                     break
 
@@ -247,36 +314,26 @@ def play():
                 else:
                     a.append(p)
             last_platform = bigger_value(a)
-            pygame.draw.rect(display, (255, 255, 255),
-                             pygame.Rect(last_platform, 600, 50, 50))
+            pygame.draw.rect(display, (255, 255, 255), pygame.Rect(last_platform, 600, 50, 50))
 
             for group in physics_group:
                 for o in group:
-                    if not pygame.sprite.spritecollide(o, platform_group,
-                                                       False, False):
-                        pass
-                    else:
+                    if pygame.sprite.spritecollide(o, platform_group, False, False):
                         o.rect.y -= o.gravity
 
     def collision_player():
-        for p in platform_group:
-            if player.rect.left == p.rect.right and p.rect.y + 60 > player.rect.y > p.rect.y - 60:
-                player.rect.left += player.speed
-                player.can_jump = True
+        for tile in platform_group:
+            if tile.rect.colliderect(player.rect.x + player.motion.x, player.rect.y, player.rect.w, player.rect.h):
+                player.motion.x = 0
 
-            if player.rect.right == p.rect.left and p.rect.y + 60 > player.rect.y > p.rect.y - 60:
-                player.rect.right -= player.speed
-                player.can_jump = True
+            if tile.rect.colliderect(player.rect.x, player.rect.y + player.motion.y, player.rect.w, player.rect.h):
+                if player.motion.y < 0:
+                    player.motion.y = tile.rect.bottom - player.rect.top
+                    player.motion.y = 0
 
-            if player.rect.bottom == p.rect.top and p.rect.x - 60 < player.rect.x < p.rect.x + 60:
-                player.rect.bottom -= player.gravity
-                player.can_jump = True
-
-            if player.rect.top == p.rect.bottom and p.rect.x - 60 < player.rect.x < p.rect.x + 60:
-                player.rect.top += player.gravity
-
-            if pygame.sprite.collide_rect(p, player):
-                player.jump = False
+                elif player.motion.y >= 0:
+                    player.motion.y = tile.rect.top - player.rect.bottom
+                    player.motion.y = 0
 
     def interface():
         global font
@@ -301,17 +358,8 @@ def play():
 
         display.blit(text_coin['text'], text_coin['pos'])
 
-    def statistics():
-        print('-=' * 24)
-        print('fps: ', clock.get_fps())
-        print('-' * 42)
-        print('player can jump: ', player.can_jump)
-        print('-' * 42)
-        print('player rect', player.rect.x)
-
     def spawner():
-
-        print(last_platform)
+        global loop
 
         for t in timers:
             t[0] += t[1]
@@ -321,7 +369,6 @@ def play():
                     new = _asteroid(display, asteroid_group)
                     try:
                         new.rect.x = randint(int(first_platform) - 50, last_platform + 50)
-                        print(last_platform)
                     except ValueError:
                         new.kill()
                         print(ValueError)
@@ -346,14 +393,7 @@ def play():
                         new.kill()
                     t[0] = 0
 
-    def die():
-        global loop
-        if pygame.sprite.groupcollide(player_group, asteroid_group, True, True):
-            save_variables()
-            loop = False
-
         if player.rect.y > 650:
-            save_variables()
             loop = False
 
     def get():
@@ -381,40 +421,45 @@ def play():
 
         interface()
 
-    def update_control():
-        for group in update_group:
-            group.update()
-
-        gravity_control()
-        platform_collisions()
-        collision_player()
-        die()
-        get()
-        kill_items()
-        spawner()
-        next_level()
-
     # statistics()
 
     create_map(maps[0])
 
     # loop
     while loop:
-
-        clock.tick(60)
-
+        # Events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    print("oi")
-
-                    loop = False  # sys.exit()
+                    loop = False
 
                 if event.key == pygame.K_SPACE:
-                    player.jump = True
+                    player.motion.y = -10
+
+                if event.key in [pygame.K_RIGHT, pygame.K_d]:
+                    player.side = False
+
+                if event.key in [pygame.K_LEFT, pygame.K_a]:
+                    player.side = True
+
+
+        
+        # update
+        platform_collisions()
+        collision_player()
+        get()
+        kill_items()
+        spawner()
+        next_level()
+
+        for group in update_group:
+            group.update()
+        
+        if pygame.sprite.groupcollide(player_group, asteroid_group, True, True):
+            loop = False
 
         # draw
         display.blit(
@@ -424,150 +469,10 @@ def play():
 
         render_control()
 
-        # update
-        update_control()
+        display.blit(font.render(f'fps: {int(clock.get_fps())}', False, 0), (10, 50))
 
         pygame.display.update()
-
+        clock.tick(60)
 
 if __name__ == '__main__':
-    pygame.init()
-
-    display = pygame.display.set_mode([900, 650])
-
-    font = pygame.font.Font("data/Font.ttf", 30)
-    font2 = pygame.font.Font("data/Font.ttf", 21)
-
-    util.data_verification('variables/save.json')
-    data = util.read_json('variables/save.json')
-
-    textures = [
-        pygame.image.load('data/dino/dino_00.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_01.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_02.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_03.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_04.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_05.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_06.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_07.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_08.png').convert_alpha(),
-        pygame.image.load('data/dino/dino_09.png').convert_alpha(),
-    ]
-    player_image = textures[0]
-    player_pos = [0, 211 - 75]
-    player_side = True
-    frame = 0
-    frame_speed = 6
-
-    color_play_button = (235, 235, 235)
-
-    online = 'off'
-
-    text_coins = {
-        'text': font.render('coins: ' + str(util.read_json('variables/save.json')['coins']), False, 0),
-        'pos': [10, 10],
-    }
-
-    text_play = {
-        'text': font.render('Press P to play', False, 0),
-        'pos': [20, 211],
-    }
-
-    text_online = {
-        'text': font.render('online: ' + online, False, 0),
-        'pos': [720, 10],
-    }
-
-    text_online_screen = {
-        'text': font2.render(online, False, 0),
-        'pos': [470, 120]
-    }
-
-    text_author = {
-        'text': font2.render('Made by Gustavo Cavalcanti (Catiorro Programador)', False, 0),
-        'pos': [5, 630],
-    }
-
-    render = [
-        text_coins, text_play, text_online, text_author, text_online_screen
-    ]
-
-
-    def background():
-        #  dinos
-        display.blit(transform_texture(player_image, [72, 72], False, False), (player_pos[0], player_pos[1]))
-
-        #  press p for player
-        pygame.draw.rect(display, color_play_button, pygame.Rect(10, 200, 300, 50))
-
-
-    def display_online():
-        bg = pygame.draw.rect(display, (235, 235, 235), pygame.Rect(450, 100, 400, 400))
-
-
-    def animation():
-        global frame, player_image, frame_speed, player_side
-
-        if player_side:
-            player_pos[0] += 3
-
-        else:
-            player_pos[0] -= 3
-
-        if player_pos[0] > 300 - 72:
-            player_side = False
-
-        elif player_pos[0] < 10:
-            player_side = True
-
-        if True:
-            frame += 1
-            if frame >= frame_speed:
-                player_image = transform_texture(textures[4], [72, 72], not player_side, False)
-
-                if frame >= frame_speed * 2:
-                    player_image = transform_texture(textures[5], [72, 72], not player_side, False)
-
-                    if frame >= frame_speed * 3:
-                        player_image = transform_texture(textures[6], [72, 72], not player_side, False)
-
-                        if frame >= frame_speed * 4:
-                            player_image = transform_texture(textures[7], [72, 72], not player_side, False)
-
-                            if frame >= frame_speed * 5:
-                                player_image = transform_texture(textures[8], [72, 72], not player_side, False)
-
-                                if frame >= frame_speed * 6:
-                                    player_image = transform_texture(textures[9], [72, 72], not player_side, False)
-
-                                    if frame >= frame_speed + 4:
-                                        frame = 0
-
-
-    while True:
-        text_coins['text'] =  font.render('coins: ' + str(util.read_json('variables/save.json')['coins']), False, 0)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                sys.exit(0)
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    color_play_button = (71, 228, 252)
-
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_p:
-
-                    play()
-
-                    color_play_button = (235, 235, 235)
-
-
-        display.fill((215, 215, 215))
-        display_online()
-        background()
-        animation()
-
-        for item in render:
-            display.blit(item['text'], item['pos'])
-
-        pygame.display.update()
-        pygame.time.Clock().tick(60)
+    menu()

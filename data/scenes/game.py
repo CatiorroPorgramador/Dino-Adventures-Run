@@ -6,7 +6,7 @@ from data.objects.player_class import _player, transform_texture
 from data.objects.platform_class import _platform
 from data.objects.asteroid_class import _asteroid
 from data.objects.coin_class import _coin
-from data.objects.up_class import _up
+from data.objects.fuel_class import _up
 from data.save import util
 
 dirpath = getcwd()

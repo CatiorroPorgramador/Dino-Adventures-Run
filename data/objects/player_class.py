@@ -16,104 +16,63 @@ class _player(pygame.sprite.Sprite):
         super().__init__(*groups)
 
         # texture
-        self.textures = [
-            pygame.image.load('data/dino/dino_00.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_01.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_02.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_03.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_04.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_05.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_06.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_07.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_08.png').convert_alpha(),
-            pygame.image.load('data/dino/dino_09.png').convert_alpha(),
+        txtr = pygame.image.load('data/dino/dino_00.png').convert_alpha()
+        self.image = transform_texture(txtr, [72, 72], True, False)
+        self.run_sheet = [
+            pygame.image.load(f'data/dino/dino_0{i}.png').convert_alpha() for i in range(4, 10)
         ]
-
-        self.image = transform_texture(self.textures[0], [72, 72], True, False)
 
         self.side = False  # left
 
         self.fuels = 0
 
         # animation
+        self.motion:pygame.Vector2 = pygame.Vector2()
         self.in_movement = False
 
         self.frame = 0
-        self.max_frame = 200
 
         self.frame_speed = 6
 
         # rect
-        self.rect = pygame.Rect(400, 10 * 50, 60, 60)
+        self.rect = pygame.Rect(0, 0, 15*2.5, 17*2.5)
+        
 
         self.speed = 5
 
         # jump
-        self.gravity: int = 4
+        self.gravity:float = 0.25
 
         self.on_ground: bool = True
-        self.can_jump = False
+        self.can_jump:bool = True
+        self.can_fall:bool = False
 
         self.index_jump = 0
         self.jump_force = 20
 
-        self.jump = False
-
     def movement_control(self):
+        self.rect.x += self.motion.x
+        self.rect.y += self.motion.y
+
         keys = pygame.key.get_pressed()
-
-        if keys[pygame.K_a]:
-            self.rect.x -= self.speed
-            self.side = False
-            self.in_movement = True
-
-        elif keys[pygame.K_d]:
-            self.rect.x += self.speed
-            self.side = True
-            self.in_movement = True
-
-        else:
-            self.in_movement = False
+        
+        self.motion.x = (int(keys[pygame.K_d]) - int(keys[pygame.K_a])) * self.speed
+        
+        self.motion.y += self.gravity
+        
+        self.in_movement = self.motion.x != 0
 
     def animation_control(self):
-        if self.in_movement:
+        if self.motion.x != 0:
+            print(f'frame {self.frame}')
             self.frame += 1
-            if self.frame >= self.frame_speed:
-                self.image = transform_texture(self.textures[4], [72, 72], not self.side, False)
-
-                if self.frame >= self.frame_speed * 2:
-                    self.image = transform_texture(self.textures[5], [72, 72], not self.side, False)
-
-                    if self.frame >= self.frame_speed * 3:
-                        self.image = transform_texture(self.textures[6], [72, 72], not self.side, False)
-
-                        if self.frame >= self.frame_speed * 4:
-                            self.image = transform_texture(self.textures[7], [72, 72], not self.side, False)
-
-                            if self.frame >= self.frame_speed * 5:
-                                self.image = transform_texture(self.textures[8], [72, 72], not self.side, False)
-
-                                if self.frame >= self.frame_speed * 6:
-                                    self.image = transform_texture(self.textures[9], [72, 72], not self.side, False)
-
-                                    if self.frame >= self.frame_speed + 4:
-                                        self.frame = 0
-
-    def jump_control(self):
-        if self.jump and self.can_jump:
-            self.index_jump += 1
-
-            self.gravity = -6
-
-            if self.index_jump >= self.jump_force:
-                self.jump = False
-                self.index_jump = 0
-                self.can_jump = False
-
-        else:
-            self.gravity: int = 2
+            try:
+                self.image = transform_texture(self.run_sheet[int(self.frame/self.frame_speed)], [15*2.5, 17*2.5], self.side, False)
+                print(f'side = {self.side}\r')
+            except Exception as e:
+                self.frame = 0
+                print(e)
 
     def update(self, *args):
         self.movement_control()
         self.animation_control()
-        self.jump_control()

@@ -12,3 +12,6 @@ class _up(pygame.sprite.Sprite):
         self.gravity = 4
 
         self.rect = pygame.Rect(50 * 5, 0, 30, 30)
+
+    def update(self, *args: any, **kwargs: any) -> None:
+        self.rect.y += self.gravity

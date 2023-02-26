@@ -13,3 +13,6 @@ class _coin(pygame.sprite.Sprite):
         self.gravity = 4
 
         self.hp = 600
+    
+    def update(self, *args: any, **kwargs: any) -> None:
+        self.rect.y += self.gravity
